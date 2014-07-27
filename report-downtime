@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#Bash script that pings google's dns server to verify internet connectivity.
+#Script logs the time of failed ping and calculates internet outage time based on
+#next successful ping. 
+
+
+#Modify myHost variable if you want to ping something other than Google DNS
+
+myHost="8.8.8.8"
+#Dead 0 is no, 1 is yes
+ping_attempts=1
+dead=0
+
+while :
+do
+	count=$(ping -c $ping_attempts $myHost | awk -F, '/received/{print $2*1}')
+	if [ $count -eq 0 ] && [ $dead -eq 0 ]; then
+	    deadtime=$(date +%s)
+	    dead=1
+	fi
+
+	if [ $count -eq 1 ] && [ $dead -eq 1 ]; then
+		alivetime=$(date +%s)
+		diff=$(($alivetime-$deadtime))
+		echo -e "Connection back online.\nThe outage lasted $(($diff / 60)) minutes and $(($diff % 60)) seconds." | mailx -v -s "Outage Report" -S smtp-use-starttls -S ssl-verify=ignore -S smtp-auth=login -S smtp=smtp.gmail.com:587 -S from=pi@pi.com -S smtp-auth-user=YOUR-GMAIL-ADDRESS -S smtp-auth-password="GMAIL-PASSWORD" RECIPIENT-EMAIL-ADDRESS
+		dead=0
+	fi
+
+
+	sleep 5
+done
