@@ -15,15 +15,16 @@ dead=0
 while :
 do
 	count=$(ping -c $ping_attempts $myHost | awk -F, '/received/{print $2*1}')
-	if [ $count -eq 0 ] && [ $dead -eq 0 ]; then
+	if [ $count -eq 0 ] && [ $dead -lt 3 ]; then
 	    deadtime=$(date +%s)
-	    dead=1
+	    let dead=dead+1
 	fi
 
-	if [ $count -eq 1 ] && [ $dead -eq 1 ]; then
+	if [ $count -eq 1 ] && [ $dead -eq 3 ]; then
 		alivetime=$(date +%s)
+		reported=$(curl icanhazip.com)
 		diff=$(($alivetime-$deadtime))
-		echo -e "Connection back online.\nThe outage lasted $(($diff / 60)) minutes and $(($diff % 60)) seconds." | mailx -v -s "Outage Report" -S smtp-use-starttls -S ssl-verify=ignore -S smtp-auth=login -S smtp=smtp.gmail.com:587 -S from=pi@pi.com -S smtp-auth-user=YOUR-GMAIL-ADDRESS -S smtp-auth-password="GMAIL-PASSWORD" RECIPIENT-EMAIL-ADDRESS
+		echo -e "Connection back online.\nThe outage lasted $(($diff / 60)) minutes and $(($diff % 60)) seconds.\nIP: $reported" | mailx -v -s "Outage Report" DESINATION
 		dead=0
 	fi
 
